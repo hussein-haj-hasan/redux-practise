@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { counterInitial, AppDispatch, stateType } from "./types";
+import { counterInitial, AppDispatch, stateType, getStateType } from "./types";
 export const CounterSlice = createSlice({
   name: "counter",
   initialState: { count: 0 } as counterInitial,
@@ -16,8 +16,14 @@ export const CounterSlice = createSlice({
   },
 });
 export const asyncIncrementByAmount: any =
-  (amount: number) => (dispatch: AppDispatch) => {
-    setTimeout(() => dispatch(incrementByAmount(amount)), 3000);
+  (amount: number) => (dispatch: AppDispatch, getState: getStateType) => {
+    setTimeout(() => {
+      const stateBefore = getState();
+      console.log(stateBefore.CounterSlice.count);
+      dispatch(incrementByAmount(amount));
+      const stateAfter = getState();
+      console.log(stateAfter.CounterSlice.count);
+    }, 3000);
   };
 
 export const selectCount = (state: stateType) => state.CounterSlice.count;

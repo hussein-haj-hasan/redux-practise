@@ -14,7 +14,6 @@ function Counter() {
   const [text, setText] = useState("");
   const count = useSelector(selectCount);
   const dispatch = useDispatch();
-  console.log(count);
   return (
     <>
       <div>
