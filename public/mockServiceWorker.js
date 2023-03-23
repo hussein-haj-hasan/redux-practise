@@ -2,18 +2,7 @@
 /* tslint:disable */
 
 /**
-<<<<<<< HEAD
-<<<<<<< HEAD
  * Mock Service Worker (0.36.8).
-=======
- * Mock Service Worker (0.36.3).
->>>>>>> f3e22165975501bff8f647d94b1992351b8bd5b4
-=======
- * Mock Service Worker (0.36.3).
-=======
- * Mock Service Worker (0.36.8).
->>>>>>> 75dd691 (Initial example project setup)
->>>>>>> abc
  * @see https://github.com/mswjs/msw
  * - Please do NOT modify this file.
  * - Please do NOT serve this file on production.
