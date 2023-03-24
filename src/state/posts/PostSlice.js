@@ -1,28 +1,26 @@
-import { createSlice, nanoid } from '@reduxjs/toolkit'
+import {
+  createSlice,
+  nanoid,
+  createAsyncThunk,
+  createSelector,
+  createEntityAdapter,
+} from '@reduxjs/toolkit'
+import { client } from '../../api/client'
+
+const postsAdapter = createEntityAdapter({
+  sortComparer: (a, b) => b.date.localeCompare(a.date),
+})
+
 const PostSlice = createSlice({
   name: 'posts',
-  initialState: [
-    {
-      id: '1',
-      user: '0',
-      title: 'First Post!',
-      content: 'Hello!',
-      date: '2019-02-04T11:22:00.000Z',
-      reactions: { thumbsUp: 0, hooray: 0, heart: 0, rocket: 0, eyes: 0 },
-    },
-    {
-      id: '2',
-      user: '1',
-      title: 'Second Post',
-      content: 'More text',
-      date: '2023-03-23T05:00:09.169Z',
-      reactions: { thumbsUp: 0, hooray: 0, heart: 0, rocket: 0, eyes: 0 },
-    },
-  ],
+  initialState: postsAdapter.getInitialState({
+    status: 'idle',
+    error: null,
+  }),
   reducers: {
     postAdded: {
       reducer(state, action) {
-        state.push(action.payload)
+        state.posts.push(action.payload)
       },
       // it isn't good to generate random id inside reducer cuz its behaviour is unpredicatebe
       // so it's better to add prepare function which take args and return payload object
@@ -46,20 +44,72 @@ const PostSlice = createSlice({
     },
 
     postUpdated: (state, action) => {
-      const index = state.findIndex((data) => data.id === action.payload.id)
-      if (index) {
-        state[index].title = action.payload.title
-        state[index].content = action.payload.content
+      const { id, title, content } = action.payload
+      const existingPost = state.entities[id]
+      if (existingPost) {
+        existingPost.title = title
+        existingPost.content = content
       }
     },
     reactionAdded: (state, action) => {
       const { postId, reaction } = action.payload
-      const existingPost = state.find((post) => post.id === postId)
+      const existingPost = state.entities[postId]
       if (existingPost) {
         existingPost.reactions[reaction]++
       }
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchPosts.pending, (state, action) => {
+        state.status = 'loading'
+      })
+      .addCase(fetchPosts.fulfilled, (state, action) => {
+        state.status = 'succeeded'
+        // Add any fetched posts to the array
+        // Use the `upsertMany` reducer as a mutating update utility
+        postsAdapter.upsertMany(state, action.payload)
+      })
+      .addCase(fetchPosts.rejected, (state, action) => {
+        state.status = 'failded'
+        state.error = action.error.message
+      })
+      // Use the `addOne` reducer for the fulfilled case
+      .addCase(addNewPost.fulfilled, postsAdapter.addOne)
+  },
 })
+// selectors
+// Export the customized selectors for this adapter using `getSelectors`
+export const {
+  selectAll: selectAllPosts,
+  selectById: selectPostById,
+  selectIds: selectPostIds,
+  // Pass in a selector that returns the posts slice of state
+} = postsAdapter.getSelectors((state) => state.posts)
+
+// const selectAllPosts = (state) => state.posts.posts
+// const selectPostById = (state, postId) =>
+//   state.posts.posts.find((post) => post.id === postId)
+
+export const selectPostsByUser = createSelector(
+  [selectAllPosts, (state, userId) => userId],
+  (posts, userId) => posts.filter((post) => post.user === userId)
+)
+
+export const selectUserById = (state, userId) =>
+  state.users.find((user) => user.id === userId)
+// thunk
+export const fetchPosts = createAsyncThunk('posts/fetchPosts', async () => {
+  const response = await client.get('/fakeApi/posts')
+  console.log(response.data)
+  return response.data
+})
+export const addNewPost = createAsyncThunk(
+  'posts/addNewPost',
+  async (state) => {
+    const response = await client.post('/fakeApi/posts', state)
+    return response.data
+  }
+)
 export const { postAdded, postUpdated, reactionAdded } = PostSlice.actions
 export default PostSlice.reducer
